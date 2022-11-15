@@ -194,7 +194,7 @@ class PaginatorViewsTest(TestCase):
         self.authorized_client.force_login(self.user)
 
     def test_first_page_contains_ten_records(self):
-        response = self.client.get(reverse('posts:index')) 
+        response = self.client.get(reverse('posts:index'))
         self.assertEqual(len(response.context['page_obj']), 10)
 
     def test_second_page_contains_three_records(self):
