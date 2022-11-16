@@ -1,10 +1,7 @@
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from posts.models import Group, Post
-
-User = get_user_model()
+from ..models import Group, Post, User
 
 
 class PostFormTests(TestCase):
@@ -24,12 +21,11 @@ class PostFormTests(TestCase):
         )
 
         def setUp(self):
-            # Создаем авторизованный клиент (автор поста)
             self.authorized_author_client = Client()
             self.authorized_author_client.force_login(self.user)
 
         def test_create_post(self):
-            posts_count = self.post.count()
+            posts_count = Post.objects.count()
 
             form_data = {
                 'text': 'Тестовый текст',
@@ -46,7 +42,7 @@ class PostFormTests(TestCase):
                     'posts:profile', kwargs={'username': self.user.username}
                 )
             )
-            self.assertEqual(self.post.count(), posts_count + 1)
+            self.assertEqual(Post.objects.count(), posts_count + 1)
 
         def test_edit_post(self):
             form_data = {

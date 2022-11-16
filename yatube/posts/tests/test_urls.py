@@ -1,9 +1,6 @@
-from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 
-from posts.models import Post, Group
-
-User = get_user_model()
+from ..models import Group, Post, User
 
 
 class TaskURLTests(TestCase):
@@ -22,9 +19,9 @@ class TaskURLTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+        self.client = Client()
+        self.auth = Client()
+        self.auth.force_login(self.user)
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -38,5 +35,5 @@ class TaskURLTests(TestCase):
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
-                response = self.authorized_client.get(address)
+                response = self.auth.get(address)
                 self.assertTemplateUsed(response, template)

@@ -1,12 +1,9 @@
 from django import forms
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Group, Post, User
 from ..forms import PostForm
-
-User = get_user_model()
 
 
 class PostViewsTests(TestCase):
@@ -26,13 +23,12 @@ class PostViewsTests(TestCase):
         )
 
     def setUp(self):
-        self.guest_client = Client()
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+        self.client = Client()
+        self.auth = Client()
+        self.auth.force_login(self.user)
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
-        # Собираем в словарь пары "имя_html_шаблона: reverse(name)"
         templates_page_names = {
             reverse('posts:index'): 'posts/index.html',
             (
@@ -52,12 +48,12 @@ class PostViewsTests(TestCase):
         }
         for reverse_name, template in templates_page_names.items():
             with self.subTest(template=reverse_name):
-                response = self.authorized_client.get(reverse_name)
+                response = self.auth.get(reverse_name)
                 self.assertTemplateUsed(response, template)
 
     def test_index_page_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse('posts:index'))
+        response = self.auth.get(reverse('posts:index'))
         first_object = response.context['page_obj'][0]
         group_title_0 = first_object.group.title
         post_text_0 = first_object.text
@@ -68,7 +64,7 @@ class PostViewsTests(TestCase):
 
     def test_group_list_page_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse(
+        response = self.auth.get(reverse(
             'posts:group_list', kwargs={'slug': 'slug_slug'}))
         first_object = response.context['page_obj'][0]
         post_group_0 = first_object.group.title
@@ -77,7 +73,7 @@ class PostViewsTests(TestCase):
 
     def test_profile_page_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse(
+        response = self.auth.get(reverse(
             'posts:profile', kwargs={'username': 'bilbo'}))
         first_object = response.context['page_obj'][0]
         post_group_0 = first_object.author
@@ -86,22 +82,22 @@ class PostViewsTests(TestCase):
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse(
+        response = self.auth.get(reverse(
             'posts:post_detail', kwargs={'post_id': self.post.pk}))
         first_object = response.context['post']
         self.assertEqual(first_object.pk, PostViewsTests.post.pk)
 
     def test_edit_post_page_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом"""
-        response = self.authorized_client.get(reverse('posts:post_edit',
-                                              kwargs={'post_id': self.post.pk})
-                                              )
+        response = self.auth.get(reverse('posts:post_edit',
+                                         kwargs={'post_id': self.post.pk})
+                                 )
         first_object = response.context['form']
         self.assertIsInstance(first_object, PostForm)
 
     def test_create_post_page_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse('posts:post_create'))
+        response = self.auth.get(reverse('posts:post_create'))
         form_fields = {
             'text': forms.fields.CharField,
             'group': forms.models.ModelChoiceField
@@ -122,76 +118,20 @@ class PaginatorViewsTest(TestCase):
             slug='slug_slug',
             description='Тестовое описание',
         )
-        cls.post1 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост1',
-            group=cls.group1
-        )
-        cls.post2 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост2',
-            group=cls.group1
-        )
-        cls.post3 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост3',
-            group=cls.group1
-        )
-        cls.post4 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост4',
-            group=cls.group1
-        )
-        cls.post5 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост5',
-            group=cls.group1
-        )
-        cls.post6 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост6',
-            group=cls.group1
-        )
-        cls.post7 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост7',
-            group=cls.group1
-        )
-        cls.post8 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост8',
-            group=cls.group1
-        )
-        cls.post9 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост9',
-            group=cls.group1
-        )
-        cls.post10 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост10',
-            group=cls.group1
-        )
-        cls.post11 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост12',
-            group=cls.group1
-        )
-        cls.post12 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост13',
-            group=cls.group1
-        )
-        cls.post13 = Post.objects.create(
-            author=cls.user,
-            text='Тестовый пост',
-            group=cls.group1
-        )
+        posts_list = []
+        for i in range(13):
+            posts_list.append(Post(
+                author=cls.user,
+                text=f'Текстовый пост {i}',
+                group=cls.group1,
+                pk=i
+            ))
+        cls.post = Post.objects.bulk_create(posts_list)
 
     def setUp(self):
-        self.guest_client = Client()
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
+        self.client = Client()
+        self.auth = Client()
+        self.auth.force_login(self.user)
 
     def test_first_page_contains_ten_records(self):
         response = self.client.get(reverse('posts:index'))
@@ -207,6 +147,6 @@ class PaginatorViewsTest(TestCase):
         self.assertEqual(len(response.context['page_obj']), 10)
 
     def test_first_page_profile_contains_ten_records(self):
-        response = self.authorized_client.get(reverse(
+        response = self.auth.get(reverse(
             'posts:profile', kwargs={'username': 'bilbo'}))
         self.assertEqual(len(response.context['page_obj']), 10)
